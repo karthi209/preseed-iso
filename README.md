@@ -12,7 +12,7 @@
 ## Requirements
 
 - Windows PowerShell 5.1 or later
-- [Windows ADK](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install) - uires the the powershell script requires the oscdimg component of the Windows ADK, but it's just easier to install as a kit
+- [Windows ADK](https://learn.microsoft.com/en-us/windows-hardware/get-started/adk-install) - the powershell script requires the `oscdimg` component of the Windows ADK, but it's just easier to install as a kit
 
 ## Usage
 
@@ -26,7 +26,7 @@
     cd preseed-iso
     ```
 
-3. Run the script with the necessary parameters:
+3. Run the script:
     ```sh
     .\PreSeedISO.ps1
     ```
@@ -36,6 +36,8 @@
 - Make sure to place your Debian ISO inside the repository - the script will look for an .ISO file inside here, if you have multiple ISO files in this folder the script will chose the first one in alphabetical order.
 
 - You can update the preseed.cfg as per your requirement - the default as generic values that should be good enough for most test VMs.
+
+- Provide the disk letter when it prompts - give any disk letter that's not currently in use.
 
 ## Contributing
 
