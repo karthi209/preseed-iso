@@ -56,38 +56,47 @@ Write-Host "|_|   |_|  \___|____/ \___|\___|\__,_| |___|____/ \___/ "
 Write-Host " "
 Write-Host " "
 
-$mountedVolumeLetter = "E"  # Change this to the drive letter of the mounted ISO # Manually specify the mounted volume drive letter (e.g., D, E, etc.)
+# Prompt user for their name
+$mountedVolumeLetter = Read-Host "Enter disk letter to mount: (e.g., D, E, etc.)"
+
+Write-Host " "
+Write-Host " "
+
+Write-Host "The ISO with temporarily mount as disk $mountedVolumeLetter :"
+
+Write-Host " "
+Write-Host " "
 
 # Get the directory where the script is located
 $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 # Find the first .iso file in the same folder as the script
 $sourceISO = Get-ChildItem -Path $scriptDirectory -Filter *.iso | Select-Object -First 1
+$sourceISO = Join-Path $scriptDirectory $sourceISO
 
+Write-Host "ISO files found in the path $sourceISO" -ForegroundColor Green
 if ($null -eq $sourceISO) {
-    Write-Host "No ISO files found in the script directory."
+    Write-Host "No ISO files found in the script directory." -ForegroundColor Red
     exit
 }
+
 $tempFolder = Join-Path $scriptDirectory "Temp"
+
 $preseedFile = Join-Path $scriptDirectory "preseed.cfg"
-$kickstartFile = Join-Path $scriptDirectory "ks.cfg"
+if ($null -eq $sourceISO) {
+    Write-Host "No ISO files found in the script directory." -ForegroundColor Red
+    exit
+}
+Write-Host "Preseed file found at path $preseedFile" -ForegroundColor Green
 
 # Calculate the position from the start of the string
 $positionFromStart = $sourceISO.Length - 4
 $outputISO = $sourceISO.Insert($positionFromStart, "-preseed")
-
-Write-Host "Source ISO: $sourceISO" -ForegroundColor Green
-Write-Host "Temporary folder for mounting ISO: $tempFolder" -ForegroundColor Green
 Write-Host "Output ISO: $outputISO" -ForegroundColor Green
-Write-Host "Preseed file: $preseedFile" -ForegroundColor Green
-Write-Host "Kickstart file: $kickstartFile" -ForegroundColor Green
+
+Write-Host "Temporary folder for mounting ISO: $tempFolder" -ForegroundColor Green
 
 Write-Host "Mounted Volume Drive Letter: $mountedVolumeLetter" -ForegroundColor Green
-
-Write-Host " "
-Write-Host " "
-
-
 
 # Create the folder if it doesn't exist
 if (-not (Test-Path $tempFolder)) {
@@ -105,7 +114,7 @@ Write-Host " "
 
 if ($existingVolume) {
     Write-Host "Error: Drive letter $mountedVolumeLetter is already in use. Please choose a different drive letter." -ForegroundColor Red
-    exit 1
+    Exit 1
 } else {
     Write-Host "Drive letter $mountedVolumeLetter is available. Proceeding with mounting the ISO..." -ForegroundColor Green
 }
@@ -127,10 +136,31 @@ Write-Host " "
 Write-Host " "
 
 # Copy the contents of the mounted ISO to the temporary folder
-Write-Host "Copying contents from mounted ISO to temporary folder..."
-Copy-Item -Path "$mountedVolumePath\*" -Recurse -Destination $tempFolder -Force
+# Check if the mounted volume path exists
+if (Test-Path $mountedVolumePath) {
+    try {
+        Write-Host "Copying contents from mounted ISO to temporary folder..."
 
-Write-Host "ISO contents copied to temporary folder." -ForegroundColor Green
+        # Copy the contents from the mounted ISO to the temporary folder
+        Copy-Item -Path "$mountedVolumePath\*" -Recurse -Destination $tempFolder -Force
+
+        Write-Host "ISO contents copied to temporary folder." -ForegroundColor Green
+
+        Write-Host " "
+        Write-Host " "
+    }
+    catch {
+        Write-Host "Error occurred while copying the ISO contents: $_" -ForegroundColor Red
+
+        Write-Host " "
+        Write-Host " "
+    }
+} else {
+    Write-Host "The specified mounted volume path does not exist: $mountedVolumePath" -ForegroundColor Red
+}
+
+Write-Host " "
+Write-Host " "
 
 # Add the preseed.cfg to the appropriate directory (usually in the "preseed" folder or root)
 $preseedDest = "$tempFolder\preseed"
@@ -141,8 +171,14 @@ If (-Not (Test-Path $preseedDest)) {
     Write-Host "Preseed folder already exists in temporary directory."
 }
 
+Write-Host " "
+Write-Host " "
+
 Write-Host "Copying preseed.cfg to the preseed folder..."
 Copy-Item -Path $preseedFile -Destination $preseedDest -Force
+
+Write-Host " "
+Write-Host " "
 
 Write-Host "Preseed configuration file added to temporary folder."
 
@@ -164,6 +200,9 @@ If (-Not (Test-Path $isolinuxBinPath)) {
     Write-Host "isolinux.bin already exists in temporary folder."
 }
 
+Write-Host " "
+Write-Host " "
+
 # Unmount the ISO after copying the files
 Write-Host "Unmounting ISO..."
 Dismount-DiskImage -ImagePath $sourceISO
@@ -181,6 +220,9 @@ Write-Host "Running oscdimg to create the new ISO..."
 
 Start-Process -FilePath $oscdimgPath -ArgumentList $arguments -Wait -NoNewWindow
 
+Write-Host " "
+Write-Host " "
+
 Write-Host "ISO creation process completed." -ForegroundColor Green
 
 Write-Host " "
@@ -191,6 +233,7 @@ If (Test-Path $outputISO) {
     Write-Host "ISO created successfully at: $outputISO" -ForegroundColor Green
 } Else {
     Write-Host "Error: ISO not found. Please check the output path." -ForegroundColor Red
+    exit 1
 }
 
 Write-Host " "
@@ -200,6 +243,8 @@ Write-Host " "
 try {
     Write-Host "Cleaning up temporary folder..."
     Remove-Item -Path $tempFolder -Recurse -Force
+    Write-Host " "
+    Write-Host " "
     Write-Host "Temporary folder cleaned up successfully." -ForegroundColor Green
 } catch {
     Write-Host "Warning: Failed to remove some items in the temporary folder. Please check manually." -ForegroundColor Yellow
@@ -208,4 +253,5 @@ try {
 Write-Host " "
 Write-Host " "
 
-Write-Host "Thank you for using PreSeed ISO!"
+Write-Host "Thank you for using PreSeed ISO! The Preseeded ISO is created is the same folder this script is being run."
+Write-Host "The temp folder and the mount that was created by this script are are cleaned up, you don't have to worry :-)"
